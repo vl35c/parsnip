@@ -54,6 +54,13 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
+library
+    exposed-modules:  MDParser
+
+    hs-source-dirs:   src/parser
+
+    build-depends: base >= 4.17
+
 executable parsnip
     -- Import common warning flags.
     import:           warnings
@@ -68,7 +75,8 @@ executable parsnip
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.18.3.0
+    build-depends:    base >= 4.17
+                    , parsnip
 
     -- Directories containing source files.
     hs-source-dirs:   app

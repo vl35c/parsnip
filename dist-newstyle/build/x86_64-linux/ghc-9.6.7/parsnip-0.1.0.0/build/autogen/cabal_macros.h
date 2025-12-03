@@ -20,16 +20,6 @@
   (major1) == 4 && (major2) <  18 || \
   (major1) == 4 && (major2) == 18 && (minor) <= 3)
 #endif /* MIN_VERSION_base */
-/* package parsnip-0.1.0.0 */
-#ifndef VERSION_parsnip
-#define VERSION_parsnip "0.1.0.0"
-#endif /* VERSION_parsnip */
-#ifndef MIN_VERSION_parsnip
-#define MIN_VERSION_parsnip(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  1 || \
-  (major1) == 0 && (major2) == 1 && (minor) <= 0)
-#endif /* MIN_VERSION_parsnip */
 
 /* tool gcc-15.2.1 */
 #ifndef TOOL_VERSION_gcc
@@ -122,8 +112,11 @@
   (major1) == 2 && (major2) == 45 && (minor) <= 0)
 #endif /* MIN_TOOL_VERSION_strip */
 
+#ifndef CURRENT_PACKAGE_KEY
+#define CURRENT_PACKAGE_KEY "parsnip-0.1.0.0-inplace"
+#endif /* CURRENT_packageKey */
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "parsnip-0.1.0.0-inplace-parsnip"
+#define CURRENT_COMPONENT_ID "parsnip-0.1.0.0-inplace"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"
