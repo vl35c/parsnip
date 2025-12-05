@@ -10,7 +10,7 @@ import Data.Char
 import Control.Applicative
 
 
-data Markdown = Header String
+data Markdown = Header String String
               | HeaderDescription String
               | Subheader String
               | CodeSnippet String
@@ -39,6 +39,11 @@ instance Alternative Parser where
   empty = Parser $ \_ -> Nothing
   (Parser p1) <|> (Parser p2) = Parser $ \input ->
     p1 input <|> p2 input
+
+instance Monad Parser where
+  p >>= k = Parser $ \input -> case runParser p input of
+    Nothing -> Nothing
+    Just (input', x) -> runParser (k x) input'
 
 
 space :: Char -> Bool
@@ -93,10 +98,11 @@ codeLiteral = spanP (/= '`')
 
 
 parseHeader :: Parser Markdown
-parseHeader = Header <$> (ws *> stringP "# " *> alphanumeric <* ws <* notNewLine <* ws)
-
-parseHeaderDescription :: Parser Markdown
-parseHeaderDescription = HeaderDescription <$> (ws *> notNewLine <* ws)
+parseHeader = do
+   _ <- (ws <* stringP "# ")
+   header <- (alphanumeric <* ws)
+   description <- (notNewLine <* ws)
+   Parser $ \input -> Just (input, Header header description)
 
 
 parseSubheader :: Parser Markdown
@@ -116,7 +122,11 @@ parseHorizontalBreak = (\_ -> HorizontalBreak) <$> (ws *> stringP "---" <* ws)
 
 
 parseMarkdown :: Parser Markdown
-parseMarkdown = parseHeader <|> parseSubheader <|> parseCodeSnippet <|> parseDescription <|> parseHorizontalBreak
+parseMarkdown = parseHeader 
+            <|> parseSubheader 
+            <|> parseCodeSnippet 
+            <|> parseDescription 
+            <|> parseHorizontalBreak 
 
 
 parse :: String -> [Markdown]
