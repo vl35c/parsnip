@@ -1,4 +1,8 @@
-import os
+import subprocess
 
 
-os.system("")
+with open ("data/test.md", "rb") as file:
+    data = file.read();
+
+    v = subprocess.check_output(["cabal", "exec", "parsnip", data], text=True)
+    print(v)

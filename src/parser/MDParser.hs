@@ -11,9 +11,11 @@ import Control.Applicative
 
 
 data Markdown = Header String
+              | HeaderDescription String
               | Subheader String
               | CodeSnippet String
               | CodeDescription String
+              | HorizontalBreak
   deriving (Show)
 
 
@@ -39,12 +41,22 @@ instance Alternative Parser where
     p1 input <|> p2 input
 
 
+space :: Char -> Bool
+space c = case c of
+  ' '  -> True
+  '\t' -> True
+  '\n' -> True
+  '\r' -> True
+  '\\' -> True
+  _    -> False
+
+
 ws :: Parser String
-ws = spanP isSpace
+ws = spanP space
 
 
 alphanumeric :: Parser String
-alphanumeric = spanP $ not . isSpace
+alphanumeric = spanP $ not . space
 
 
 notNewLine :: Parser String
@@ -81,26 +93,33 @@ codeLiteral = spanP (/= '`')
 
 
 parseHeader :: Parser Markdown
-parseHeader = Header <$> (stringP "# " *> alphanumeric <* ws)
+parseHeader = Header <$> (ws *> stringP "# " *> alphanumeric <* ws <* notNewLine <* ws)
+
+parseHeaderDescription :: Parser Markdown
+parseHeaderDescription = HeaderDescription <$> (ws *> notNewLine <* ws)
 
 
 parseSubheader :: Parser Markdown
-parseSubheader = Subheader <$> (stringP "### " *> alphanumeric <* ws)
+parseSubheader = Subheader <$> (ws *> stringP "### " *> alphanumeric <* notNewLine <* ws)
 
 
 parseCodeSnippet :: Parser Markdown
-parseCodeSnippet = CodeSnippet <$> (charP '`' *> codeLiteral <* charP '`')
+parseCodeSnippet = CodeSnippet <$> (ws *> charP '`' *> codeLiteral <* charP '`' <* ws)
 
 
 parseDescription :: Parser Markdown
-parseDescription = CodeDescription <$> (stringP " - " *> notNewLine)
+parseDescription = CodeDescription <$> (ws *> stringP "- " *> notNewLine <* ws)
+
+
+parseHorizontalBreak :: Parser Markdown
+parseHorizontalBreak = (\_ -> HorizontalBreak) <$> (ws *> stringP "---" <* ws)
 
 
 parseMarkdown :: Parser Markdown
-parseMarkdown = parseHeader <|> parseSubheader <|> parseCodeSnippet <|> parseDescription
+parseMarkdown = parseHeader <|> parseSubheader <|> parseCodeSnippet <|> parseDescription <|> parseHorizontalBreak
 
 
--- parse :: String -> [Markdown]
+parse :: String -> [Markdown]
 parse input = case output of
   Just (rest, token) -> token : (parse rest)
   Nothing            -> []
