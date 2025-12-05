@@ -11,7 +11,7 @@ Font overrides pygame's own font class, extending its functionality to be able t
 
 `str` - string passed into render to be displayed\
 `antialias` - should the string be antialiased\
-`color` - the color for the text to be rendered in - examples - `Color.BLACK`, `"black"`, `(255, 255, 255)`\
+`color` - the color for the text to be rendered in - examples - `Color.BLACK`, `black`, `(255, 255, 255)`\
 `pos` - the position on the window for the text to be rendered
 
 ---
@@ -132,7 +132,7 @@ A graph is a chart which allows users to be able to visualise stock data on a ca
 
 An interactor is an input that the user is able to interact with.
 
-### PROPERTIES
+### PROPERTIES:
 `_func` - function attached to the interactor\
 `bg_color` - background color of the interactor\
 `font` - local instance of the Font class\
@@ -147,7 +147,7 @@ An interactor is an input that the user is able to interact with.
 `x` - x position of the top left of the interactor\
 `y` - y position of the top left of the interactor
 
-### METHODS
+### METHODS:
 `_centered_text(self, text_object: str) -> tuple[int, int]` - returns the position to place text so that it is centered in the interactor\
 \
 `text_object` - string to be centered
@@ -170,10 +170,10 @@ An interactor is an input that the user is able to interact with.
 
 The renderer is used to hold drawing functions that may not be called in the correct order, and draw them in the correct order at the end of the frame.
 
-### PROPERTIES
+### PROPERTIES:
 `held_functions` - list of functions held by the renderer waiting to be called
 
-### METHODS
+### METHODS:
 `call(self)` - calls all the waiting functions in order of their `z` value
 
 ---
@@ -191,7 +191,7 @@ The renderer is used to hold drawing functions that may not be called in the cor
 
 TextInput allows the user to input text into a custom interactor
 
-### PROPERTIES (EXTENSIONS)
+### PROPERTIES: (EXTENSIONS)
 `__buttons` - list of buttons which gets populated when using the text input\
 `active` - boolean showing whether the text box is active or not\
 `button_func` - the function that the buttons created when using the text input call\
@@ -200,7 +200,7 @@ TextInput allows the user to input text into a custom interactor
 `on_input_list_update` - function which is called when the input is updated\
 `placeholder` - placeholder text that shows when the text input is not active
 
-### METHODS (EXTENSIONS)
+### METHODS: (EXTENSIONS)
 `__offset_text(self, text_object: str) -> tuple[int, int]` - returns a tuple containing the position to place offset text inside of the text input\
 \
 `text_object` - string to be offset

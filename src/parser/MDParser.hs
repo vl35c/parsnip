@@ -14,7 +14,12 @@ data Markdown = Header String String
               | Subheader String
               | CodeSnippet String String
               | HorizontalBreak
-  deriving (Show)
+
+instance Show Markdown where
+  show (Header header description)    = "\"Header<s>" ++ header ++ "<s>"  ++ description ++ "\""
+  show (Subheader subheader)          = "\"Subheader<s>" ++ subheader ++ "\""
+  show (CodeSnippet code description) = "\"CodeSnippet<s>" ++ code ++ "<s>" ++ description ++ "\""
+  show HorizontalBreak                = "\"HB\""
 
 
 newtype Parser a = Parser {
@@ -117,7 +122,7 @@ parseCodeSnippet = do
   code <- codeLiteral
   _ <- (charP '`' <* ws <* stringP "- ")
   description <- (notNewLine <* ws)
-  Parser $ \input -> Just (input, CodeSnippet code description)
+  Parser $ \input -> Just (input, CodeSnippet code $ takeWhile (/='\\') description)
 
 
 -- parses horizontal breaks
