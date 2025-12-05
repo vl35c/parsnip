@@ -10,13 +10,16 @@ class MDFile:
 
 
 class MDClass:
-    def __init__(self, name: str, description: str):
+    def __init__(self, name: str, description: str, superclass: str = None):
         self.name: str = name
         self.properties: list[MDProperty] = []
         self.methods: list[MDMethod] = []
         self.description: str = description
+        self.superclass = superclass
 
     def __str__(self):
+        if self.superclass is not None:
+            return f"{self.name}({self.superclass})"
         return f"{self.name}"
 
 
@@ -68,8 +71,11 @@ class Parsnip:
             item_type = items[0]       # get the first value of the list, which is the markdown type
             rest = items[1:]           # store remaining values
 
-            if item_type == "Header":
+            if item_type == "Class":
                 self.md_file.classes.append(MDClass(*rest))  # store the remaining data in a class [name, description]
+
+            if item_type == "Subclass":
+                self.md_file.classes.append(MDClass(*rest))
 
             elif item_type == "Subheader":
                 # checking whether we are about to read in properties or methods
@@ -91,4 +97,7 @@ class Parsnip:
 
 if __name__ == "__main__":
     app = Parsnip()
+
+    for c in app.md_file.classes:
+        print(c)
 

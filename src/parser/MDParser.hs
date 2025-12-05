@@ -10,16 +10,18 @@ import Data.Char
 import Control.Applicative
 
 
-data Markdown = Header String String
+data Markdown = Class String String
+              | Subclass String String String
               | Subheader String
               | CodeSnippet String String
               | HorizontalBreak
 
 instance Show Markdown where
-  show (Header header description)    = "\"Header<s>" ++ header ++ "<s>"  ++ description ++ "\""
-  show (Subheader subheader)          = "\"Subheader<s>" ++ subheader ++ "\""
-  show (CodeSnippet code description) = "\"CodeSnippet<s>" ++ code ++ "<s>" ++ description ++ "\""
-  show HorizontalBreak                = "\"HB\""
+  show (Class className description)               = "\"Class<s>" ++ className ++ "<s>"  ++ description ++ "\""
+  show (Subclass className superClass description) = "\"Subclass<s>" ++ className ++ "<s>" ++ superClass ++ "<s>" ++ description ++ "\""
+  show (Subheader subheader)                       = "\"Subheader<s>" ++ subheader ++ "\""
+  show (CodeSnippet code description)              = "\"CodeSnippet<s>" ++ code ++ "<s>" ++ description ++ "\""
+  show HorizontalBreak                             = "\"HB\""
 
 
 newtype Parser a = Parser {
@@ -102,12 +104,22 @@ codeLiteral = spanP (/= '`')
 
 
 -- parses the # HEADER in a .md file, and then gets the next line as the description
-parseHeader :: Parser Markdown
-parseHeader = do
+parseClass :: Parser Markdown
+parseClass = do
    _ <- (ws <* stringP "# ")
-   header <- (alphanumeric <* ws)
+   className <- (alphanumeric <* ws)
    description <- (notNewLine <* ws)
-   Parser $ \input -> Just (input, Header header description)
+   Parser $ \input -> Just (input, Class className description)
+
+
+parseSubClass :: Parser Markdown
+parseSubClass = do
+  _ <- (ws <* stringP "# ")
+  className <- ((spanP isAlpha) <* ws)
+  superClass <- (charP '(' *> (spanP isAlpha) <* charP ')' <* ws)
+  description <- (notNewLine <* ws)
+  Parser $ \input -> Just (input, Subclass className description superClass)
+
 
 
 -- parses out the subheaders - in parsnip these are ### PROPERTIES and ### METHODS
@@ -133,7 +145,8 @@ parseHorizontalBreak = (\_ -> HorizontalBreak) <$> (ws *> stringP "---" <* ws)
 -- complete .md parser
 -- note this is specific for parsnip and does not parse every feature of a .md file
 parseMarkdown :: Parser Markdown
-parseMarkdown = parseHeader 
+parseMarkdown = parseSubClass
+            <|> parseClass
             <|> parseSubheader 
             <|> parseCodeSnippet 
             <|> parseHorizontalBreak 
