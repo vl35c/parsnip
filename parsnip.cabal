@@ -55,7 +55,9 @@ common warnings
     ghc-options: -Wall
 
 library
-    exposed-modules:  MDParser
+    exposed-modules:  Parser
+                    , MDParser
+                    , PythonParser
 
     hs-source-dirs:   src/parser
 

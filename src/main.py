@@ -55,15 +55,24 @@ class Parsnip:
 
         md_data = self.parse_md_file("data/test.md")
         self.store_md_data(md_data)
+        
+        self.parse_py_file()
 
     def parse_md_file(self, filepath: str) -> list[str]:
-        with open (filepath, "rb") as md:
+        with open(filepath, "rb") as md:
             data = md.read();  # read in .md file
             # :-1 to remove trailing '\0'
-            parsed_data = subprocess.check_output(["cabal", "exec", "parsnip", data], text=True)[:-1] 
+            parsed_data = subprocess.check_output(["cabal", "exec", "parsnip", data, "md"], text=True)[:-1] 
             md_data = json.loads(parsed_data)
 
             return md_data
+
+    def parse_py_file(self):
+        with open("data/test.py", "rb") as py:
+            data = py.read()
+            parsed_data = subprocess.check_output(["cabal", "exec", "parsnip", data, "py"], text=True)
+
+            print(parsed_data)
 
     def store_md_data(self, data: list[str]) -> None:
         for line in data:
@@ -71,11 +80,8 @@ class Parsnip:
             item_type = items[0]       # get the first value of the list, which is the markdown type
             rest = items[1:]           # store remaining values
 
-            if item_type == "Class":
-                self.md_file.classes.append(MDClass(*rest))  # store the remaining data in a class [name, description]
-
-            if item_type == "Subclass":
-                self.md_file.classes.append(MDClass(*rest))
+            if item_type in ["Class", "Subclass"]:
+                self.md_file.classes.append(MDClass(*rest))  # store the remaining data in a class [name, description, ?superclass]
 
             elif item_type == "Subheader":
                 # checking whether we are about to read in properties or methods
@@ -97,7 +103,4 @@ class Parsnip:
 
 if __name__ == "__main__":
     app = Parsnip()
-
-    for c in app.md_file.classes:
-        print(c)
 
