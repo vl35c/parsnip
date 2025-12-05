@@ -11,10 +11,8 @@ import Control.Applicative
 
 
 data Markdown = Header String String
-              | HeaderDescription String
               | Subheader String
-              | CodeSnippet String
-              | CodeDescription String
+              | CodeSnippet String String
               | HorizontalBreak
   deriving (Show)
 
@@ -46,6 +44,7 @@ instance Monad Parser where
     Just (input', x) -> runParser (k x) input'
 
 
+-- same as isSpace, but including the new line char '\' that .md files use
 space :: Char -> Bool
 space c = case c of
   ' '  -> True
@@ -60,14 +59,17 @@ ws :: Parser String
 ws = spanP space
 
 
+-- bit misleading as this parses any non whitespace char
 alphanumeric :: Parser String
 alphanumeric = spanP $ not . space
 
 
+-- parses until it hits a new line
 notNewLine :: Parser String
 notNewLine = spanP (/='\n')
 
 
+-- parses looking for a specific char
 charP :: Char -> Parser Char
 charP x = Parser f
   where
@@ -76,27 +78,25 @@ charP x = Parser f
     f [] = Nothing
 
 
+-- parses looking for a specific string
+-- turns [Parser Char] -> Parser [Char] using sequenceA
 stringP :: String -> Parser String
 stringP = sequenceA . map charP
 
 
+-- parses until a predicate is true
 spanP :: (Char -> Bool) -> Parser String
 spanP f = Parser $ \input ->
   let (token, rest) = span f input
     in Just (rest, token)
 
 
-startsP :: String -> Parser String
-startsP xs = Parser $ \input -> do
-  (input', match) <- runParser (stringP xs) input
-  (input'', rest) <- runParser (alphanumeric) input'
-  Just (input'', match ++ rest)
-
-
+-- parses .md code snippets which are between '`' characters
 codeLiteral :: Parser String
 codeLiteral = spanP (/= '`')
 
 
+-- parses the # HEADER in a .md file, and then gets the next line as the description
 parseHeader :: Parser Markdown
 parseHeader = do
    _ <- (ws <* stringP "# ")
@@ -105,30 +105,36 @@ parseHeader = do
    Parser $ \input -> Just (input, Header header description)
 
 
+-- parses out the subheaders - in parsnip these are ### PROPERTIES and ### METHODS
 parseSubheader :: Parser Markdown
 parseSubheader = Subheader <$> (ws *> stringP "### " *> alphanumeric <* notNewLine <* ws)
 
 
+-- parses code snippets and their descriptions
 parseCodeSnippet :: Parser Markdown
-parseCodeSnippet = CodeSnippet <$> (ws *> charP '`' *> codeLiteral <* charP '`' <* ws)
+parseCodeSnippet = do
+  _ <- (ws *> charP '`')
+  code <- codeLiteral
+  _ <- (charP '`' <* ws <* stringP "- ")
+  description <- (notNewLine <* ws)
+  Parser $ \input -> Just (input, CodeSnippet code description)
 
 
-parseDescription :: Parser Markdown
-parseDescription = CodeDescription <$> (ws *> stringP "- " *> notNewLine <* ws)
-
-
+-- parses horizontal breaks
 parseHorizontalBreak :: Parser Markdown
 parseHorizontalBreak = (\_ -> HorizontalBreak) <$> (ws *> stringP "---" <* ws)
 
 
+-- complete .md parser
+-- note this is specific for parsnip and does not parse every feature of a .md file
 parseMarkdown :: Parser Markdown
 parseMarkdown = parseHeader 
             <|> parseSubheader 
             <|> parseCodeSnippet 
-            <|> parseDescription 
             <|> parseHorizontalBreak 
 
 
+-- the parse function called in io
 parse :: String -> [Markdown]
 parse input = case output of
   Just (rest, token) -> token : (parse rest)
