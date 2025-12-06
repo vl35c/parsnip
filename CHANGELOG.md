@@ -1,5 +1,11 @@
 # Revision history for parsnip
 
+## 0.1.0.3 -- 2025-12-06
+
+* Python Parser
+  * function parameters ✅
+  * variable types ✅
+
 ## 0.1.0.2 -- 2025-12-05
 
 * Classes inheritance can now be parsed in the .md file.

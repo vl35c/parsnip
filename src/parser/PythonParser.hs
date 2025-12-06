@@ -12,7 +12,16 @@ data Python = Class String
             | For String String
             | ImportFrom String String
             | Comment String
-  deriving (Show)
+
+instance Show Python where
+  show (Class name) = "\"Class<s>" ++ name ++ "\""
+  show (Param name varType) = "Param<s>" ++ name ++ "<s>" ++ varType
+  show (Function name params) = "\"Function<s>" ++ name ++ "<s>" ++ show params ++ "\""
+  show (FunctionCall name) = "\"FunctionCall<s>" ++ name ++ "\""
+  show (Property name varType value) = "\"Property<s>" ++ name ++ "<s>" ++ varType ++ "<s>" ++ value ++ "\""
+  show (For alias iterator) = "\"For<s>" ++ alias ++ "<s>" ++ iterator ++ "\""
+  show (ImportFrom library package) = "\"ImportFrom<s>" ++ library ++ "<s>" ++ package ++ "\""
+  show (Comment comment) = "\"Comment<s>" ++ comment ++ "\""
 
 
 codeString :: Parser String
