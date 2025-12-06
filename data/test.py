@@ -25,7 +25,7 @@ class HeldFunction:
     # !ignore
     def __init__(self, func, z: float):
         self.func = func
-        self.z = z
+        self.z: float = z
 
     def call(self):
         self.func()

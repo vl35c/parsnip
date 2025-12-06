@@ -5,13 +5,46 @@ import Data.Char
 import Control.Applicative
 
 data Python = Class String
-            | Function String
+            | Param String String
+            | Function String [Python]
             | FunctionCall String
-            | Property String
+            | Property String String String
             | For String String
             | ImportFrom String String
             | Comment String
   deriving (Show)
+
+
+codeString :: Parser String
+codeString = spanP isCodeChar
+  where
+    isCodeChar c = if isAlpha c 
+                   then True 
+                   else case c of
+      '_' -> True
+      _   -> False
+
+
+callString :: Parser String
+callString = spanP isCallChar
+  where
+    isCallChar c = if isAlpha c
+                   then True
+                   else case c of
+      '_' -> True
+      '.' -> True
+      _   -> False
+
+
+sepBy :: Parser a -> Parser b -> Parser [b]
+sepBy sep element = (:) <$> element <*> many (sep *> element) <|> pure []
+
+
+parseParam :: Parser Python
+parseParam = do
+  name <- codeString <* ws
+  varType <- (charP ':' *> ws *> codeString <* ws) <|> pure ""
+  Parser $ \input -> Just (input, Param name varType)
 
 
 parseImportFrom :: Parser Python
@@ -26,15 +59,24 @@ parseClass = Class <$> (stringP "class" *> ws *> (spanP isAlpha) <* ws <* charP 
 
 
 parseFunction :: Parser Python
-parseFunction = Function <$> (stringP "def" *> ws *> (spanP (/= ')')) <* stringP "):" <* ws)
+parseFunction = do
+  _ <- stringP "def" <* ws
+  name <- (spanP (/='('))
+  params <- charP '(' *> ws *> (sepBy (ws *> charP ',' <* ws) (parsePython <|> parseParam)) <* ws <* charP ')'
+  rest <- notNewLine <* ws
+  Parser $ \input -> Just (input, Function name params)
 
 
 parseFunctionCall :: Parser Python
-parseFunctionCall = FunctionCall <$> ((spanP (/='(')) <* charP '(' <* (spanP (/=')')) <* charP ')' <* ws)
+parseFunctionCall = FunctionCall <$> (callString <* charP '(' <* notNewLine <* ws)
 
 
 parseProperty :: Parser Python
-parseProperty = Property <$> (stringP "self." *> notNewLine <* ws)
+parseProperty = do
+  name <- stringP "self." *> (codeString) <* ws
+  varType <- (charP ':' *> ws *> (spanP (/='=')) <* ws) <|> pure ""
+  value <- stringP "=" *> ws *> notNewLine <* ws
+  Parser $ \input -> Just (input, Property name varType value)
 
 
 parseFor :: Parser Python
@@ -55,7 +97,7 @@ parsePython = parseClass <|>
               parseFor <|>
               parseImportFrom <|>
               parseComment <|>
-              parseFunctionCall 
+              parseFunctionCall
 
 
 parse_py :: String -> [Python]
