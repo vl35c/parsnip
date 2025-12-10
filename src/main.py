@@ -52,6 +52,7 @@ class PYClass:
         self.name: str = name
         self.properties: list[PYProperty] = []
         self.methods: list[PYMethod] = []
+        self.comments: list[str] = []
 
     def __str__(self):
         return f"{self.name}"
@@ -61,6 +62,7 @@ class PYMethod:
     def __init__(self, name: str, params):
         self.name: str = name
         self.params = params
+        self.comments: list[str] = []
 
     def __str__(self):
         return f"{self.name}"
@@ -86,6 +88,7 @@ class Parsnip:
         self.attr_store_type = AttrType.properties;
 
         self.current_class = None
+        self.current_scope = None
 
         md_data = self.parse_md_file("data/test.md")
         self.store_md_data(md_data)
@@ -148,14 +151,25 @@ class Parsnip:
                 class_ = PYClass(*rest)
                 self.py_file.classes[rest[0]] = class_
                 self.current_class = class_
+                self.current_scope = class_
 
             if item_type == "Function":
                 name = rest[0]
                 params = rest[2:-1]
-                self.current_class.methods.append(PYMethod(name, params))
+                method = PYMethod(name, params)
+
+                self.current_class.methods.append(method)
+                self.current_scope = method
 
             if item_type == "Property":
                 self.current_class.properties.append(PYProperty(*rest))
+
+            if item_type == "Comment":
+                if self.current_scope is None:
+                    continue
+
+                comment = rest[0]
+                self.current_scope.comments.append(comment)
 
 
 def red(s: str): return f"\x1b[;31m{s}\x1b[;39m"
@@ -178,19 +192,20 @@ def italic(s: str): return f"\x1b[3;29m{s}\x1b[0;39m"
 def underline(s: str): return f"\x1b[4;29m{s}\x1b[0;39m"
 
 
-
 if __name__ == "__main__":
     app = Parsnip()
 
     for class_name, c in app.py_file.classes.items():
         if class_name not in app.md_file.classes:
-            print(f"[parsnip]: missing class - {red(dim(c))}")
+            if not "!ignore" in c.comments:
+                print(f"[parsnip]: missing class - {red(dim(c))}")
             continue
 
         md_methods = [m.name for m in app.md_file.classes[class_name].methods]
 
         for m in c.methods:
             if m.name not in md_methods and m.name != "__init__":
-                print(f"[parsnip]: missing method - {red(c)}.{yellow(dim(m))}")
+                if not "!ignore" in m.comments:
+                    print(f"[parsnip]: missing method - {red(c)}.{yellow(dim(m))}")
 
 
