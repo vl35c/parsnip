@@ -1,6 +1,7 @@
 module Parser where
 
 import Control.Applicative
+import Data.Char
 
 
 newtype Parser a = Parser {
@@ -30,6 +31,11 @@ instance Monad Parser where
     Just (input', x) -> runParser (k x) input'
 
 
+-- separates by parsing a delimiter and then parsing all elements and constructing a list
+sepBy :: Parser a -> Parser b -> Parser [b]
+sepBy sep element = (:) <$> element <*> many (sep *> element) <|> pure []  -- if fail, empty list
+
+
 -- same as isSpace, but including the new line char '\' that .md files use
 space :: Char -> Bool
 space c = case c of
@@ -48,6 +54,17 @@ ws = spanP space
 -- bit misleading as this parses any non whitespace char
 alphanumeric :: Parser String
 alphanumeric = spanP $ not . space
+
+
+-- parses variable names
+codeString :: Parser String
+codeString = spanP isCodeChar
+  where
+    isCodeChar c = if isAlphaNum c
+                   then True 
+                   else case c of
+      '_' -> True
+      _   -> False
 
 
 -- parses until it hits a new line

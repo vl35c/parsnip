@@ -13,7 +13,7 @@ class MDClass:
     def __init__(self, name: str, description: str, superclass: str = None):
         self.name: str = name
         self.properties: list[MDProperty] = []
-        self.methods: list[MDMethod] = []
+        self.methods: list[MDMethod] = {}
         self.description: str = description
         self.superclass = superclass
 
@@ -26,11 +26,16 @@ class MDClass:
 class MDMethod:
     def __init__(self, name: str, description: str):
         self.name: str = name
-        self.params = []
+        self.params = {}
         self.description: str = description
 
     def __str__(self):
         return f"{self.name}"
+
+    def set_params(self, params: str) -> None:
+        for param in params[1:-1].split(','):
+            _, name, varType = param.split("<p>")
+            self.params[name] = varType
 
 
 class MDProperty:
@@ -51,7 +56,7 @@ class PYClass:
     def __init__(self, name: str):
         self.name: str = name
         self.properties: list[PYProperty] = []
-        self.methods: list[PYMethod] = []
+        self.methods: list[PYMethod] = {}
         self.comments: list[str] = []
 
     def __str__(self):
@@ -59,13 +64,19 @@ class PYClass:
 
 
 class PYMethod:
-    def __init__(self, name: str, params):
+    def __init__(self, name: str):
         self.name: str = name
-        self.params = params
+        self.params = {}
         self.comments: list[str] = []
 
     def __str__(self):
         return f"{self.name}"
+
+    def set_params(self, params: str) -> None:
+        # 1:-1 to remove [] and split to get each param
+        for param in params[1:-1].split(','):
+            _, name, type_ = param.split("<p>")
+            self.params[name] = [type_]
 
 
 class PYProperty:
@@ -123,6 +134,7 @@ class Parsnip:
                 class_ = MDClass(*rest)
                 self.md_file.classes[rest[0]] = class_  # store the remaining data in a class [name, description, ?superclass]
                 self.current_class = class_
+                self.attr_store_type = AttrType.properties
 
             elif item_type == "Subheader":
                 # checking whether we are about to read in properties or methods
@@ -136,10 +148,17 @@ class Parsnip:
 
             elif (item_type == "CodeSnippet"):
                 if self.attr_store_type == AttrType.properties:
-                    # add to most recent class
                     self.current_class.properties.append(MDProperty(*rest))
                 elif self.attr_store_type == AttrType.methods:
-                    self.current_class.methods.append(MDMethod(*rest))
+                    if rest[0] == "Function":
+                        name = rest[1]
+                        params = rest[2]
+                        description = rest[3]
+
+                        method = MDMethod(name, description)
+
+                        self.current_class.methods[name] = method
+                        method.set_params(params)
 
     def store_py_data(self, data: list[str]):
         for line in data:
@@ -153,23 +172,49 @@ class Parsnip:
                 self.current_class = class_
                 self.current_scope = class_
 
-            if item_type == "Function":
+            elif item_type == "Function":
                 name = rest[0]
-                params = rest[2:-1]
-                method = PYMethod(name, params)
+                params = rest[1]
+                method = PYMethod(name)
+                method.set_params(params)
 
-                self.current_class.methods.append(method)
+                self.current_class.methods[name] = method
                 self.current_scope = method
 
-            if item_type == "Property":
+            elif item_type == "Property":
                 self.current_class.properties.append(PYProperty(*rest))
 
-            if item_type == "Comment":
+            elif item_type == "Comment":
                 if self.current_scope is None:
                     continue
 
                 comment = rest[0]
                 self.current_scope.comments.append(comment)
+
+    def match_files(self):
+        for class_name, c in self.py_file.classes.items():
+            if class_name not in self.md_file.classes:
+                if not "!ignore" in c.comments:
+                    print(f"[parsnip]: missing class     - {red(underline(c))}")
+            try:
+                md_c = self.md_file.classes[class_name]
+            except KeyError:
+                ...
+
+            for method_name, m in c.methods.items():
+                if m.name not in md_c.methods and m.name != "__init__":
+                    if not "!ignore" in m.comments:
+                        print(f"[parsnip]: missing method    - {red(c)}.{yellow(underline(m))}")
+
+                try:
+                    md_m = md_c.methods[method_name]
+                
+                    for param in m.params:
+                        if param not in md_m.params:
+                            print(f"[parsnip]: missing parameter - {red(c)}.{yellow(m)}({green(underline(param))})")
+                except KeyError:
+                    ...
+
 
 
 def red(s: str): return f"\x1b[;31m{s}\x1b[;39m"
@@ -193,19 +238,5 @@ def underline(s: str): return f"\x1b[4;29m{s}\x1b[0;39m"
 
 
 if __name__ == "__main__":
-    app = Parsnip()
-
-    for class_name, c in app.py_file.classes.items():
-        if class_name not in app.md_file.classes:
-            if not "!ignore" in c.comments:
-                print(f"[parsnip]: missing class - {red(dim(c))}")
-            continue
-
-        md_methods = [m.name for m in app.md_file.classes[class_name].methods]
-
-        for m in c.methods:
-            if m.name not in md_methods and m.name != "__init__":
-                if not "!ignore" in m.comments:
-                    print(f"[parsnip]: missing method - {red(c)}.{yellow(dim(m))}")
-
+    Parsnip().match_files()
 

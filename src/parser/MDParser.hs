@@ -16,8 +16,9 @@ data Markdown = Class String String
               | Subheader String
               | CodeSnippet Markdown String
               | Code String
-              | Function String
+              | Function String [Markdown]
               | HorizontalBreak
+              | Param String String
 
 instance Show Markdown where
   show (Class className description)               = "\"Class<s>" ++ className ++ "<s>"  ++ description ++ "\""
@@ -26,7 +27,8 @@ instance Show Markdown where
   show (CodeSnippet code description)              = "\"CodeSnippet<s>" ++ show code ++ "<s>" ++ description ++ "\""
   show HorizontalBreak                             = "\"HB\""
   show (Code code)                                 = code
-  show (Function code)                             = code
+  show (Function name params)                      = "Function<s>" ++ name ++ "<s>" ++ show params
+  show (Param name varType)                        = "Param<p>" ++ name ++ "<p>" ++ varType
 
 
 -- parses .md code snippets which are between '`' characters
@@ -34,14 +36,12 @@ codeLiteral :: Parser Markdown
 codeLiteral = Code <$> ((spanP (/= '`')))
 
 
-codeString :: Parser String
-codeString = spanP isCodeChar
-  where
-    isCodeChar c = if isAlpha c 
-                   then True 
-                   else case c of
-      '_' -> True
-      _   -> False
+-- parses a function parameter
+parseParam :: Parser Markdown
+parseParam = do
+  name <- codeString <* ws
+  varType <- (charP ':' *> ws *> codeString <* ws) <|> pure "unset"
+  Parser $ \input -> Just (input, Param name varType)
 
 
 -- parses the # HEADER in a .md file, and then gets the next line as the description
@@ -69,10 +69,10 @@ parseSubheader = Subheader <$> (ws *> stringP "### " *> alphanumeric <* notNewLi
 
 parseFunction :: Parser Markdown
 parseFunction = do
-  name <- codeString <* ws <* charP '('
-  _ <- spanP (/=')') <* charP ')' <* ws
+  name <- codeString <* ws
+  params <- charP '(' *> ws *>  (sepBy (ws *> charP ',' <* ws) (parseParam)) <* ws <* charP ')' <* ws
   returnType <- (stringP "->" *> ws *> spanP (/='`') <* ws) <|> pure ""
-  Parser $ \input -> Just (input, Function name)
+  Parser $ \input -> Just (input, Function name params)
 
 
 -- parses code snippets and their descriptions

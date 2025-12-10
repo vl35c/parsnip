@@ -1,9 +1,14 @@
 # Revision history for parsnip
 
+## 0.1.0.5 -- 2025-12-10
+
+* Markdown Parser
+  * function parameters ✅
+
 ## 0.1.0.4 -- 2025-12-10
 
 * Markdown Parser
-  * functions
+  * functions ✅
 
 * warnings for missing code implemented
 

@@ -7,7 +7,7 @@ class Renderer:
         self.held_functions: list[HeldFunction] = []
 
     # add function to list
-    def hold(self, func: Callable, z: float):
+    def hold(self, func: Callable, z: float, missing_param):
         self.held_functions.append(HeldFunction(func, z))
 
     # sort functions by z layer and then call all
@@ -20,12 +20,11 @@ class Renderer:
     def flush(self):
         self.held_functions = []
 
-    def missing_func():
+    def missing_func(self):
         ...
 
 
 class HeldFunction:
-    # !ignore
     def __init__(self, func, z: float):
         self.func = func
         self.z: float = z
