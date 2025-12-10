@@ -12,8 +12,8 @@ class MDFile:
 class MDClass:
     def __init__(self, name: str, description: str, superclass: str = None):
         self.name: str = name
-        self.properties: list[MDProperty] = []
-        self.methods: list[MDMethod] = {}
+        self.properties: dict[MDProperty] = {}
+        self.methods: dict[MDMethod] = {}
         self.description: str = description
         self.superclass = superclass
 
@@ -55,8 +55,8 @@ class PYFile:
 class PYClass:
     def __init__(self, name: str):
         self.name: str = name
-        self.properties: list[PYProperty] = []
-        self.methods: list[PYMethod] = {}
+        self.properties: dict[PYProperty] = {}
+        self.methods: dict[PYMethod] = {}
         self.comments: list[str] = []
 
     def __str__(self):
@@ -84,6 +84,9 @@ class PYProperty:
         self.name: str = name
         self.type_: str = type_
         self.value = value
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class AttrType(Enum):
@@ -148,7 +151,9 @@ class Parsnip:
 
             elif (item_type == "CodeSnippet"):
                 if self.attr_store_type == AttrType.properties:
-                    self.current_class.properties.append(MDProperty(*rest))
+                    name = rest[0]
+
+                    self.current_class.properties[name] = MDProperty(*rest)
                 elif self.attr_store_type == AttrType.methods:
                     if rest[0] == "Function":
                         name = rest[1]
@@ -182,7 +187,10 @@ class Parsnip:
                 self.current_scope = method
 
             elif item_type == "Property":
-                self.current_class.properties.append(PYProperty(*rest))
+                # only add properties if they are made in the init function
+                if self.current_scope.name == "__init__":
+                    name = rest[0]
+                    self.current_class.properties[name] = PYProperty(*rest)
 
             elif item_type == "Comment":
                 if self.current_scope is None:
@@ -199,12 +207,19 @@ class Parsnip:
             try:
                 md_c = self.md_file.classes[class_name]
             except KeyError:
-                ...
+                continue
+
+            for property_name, p in c.properties.items():
+                if p.name not in md_c.properties:
+                    print(f"[parsnip]: missing property     - {red(c)}.{yellow(underline(p))}")
 
             for method_name, m in c.methods.items():
                 if m.name not in md_c.methods and m.name != "__init__":
                     if not "!ignore" in m.comments:
                         print(f"[parsnip]: missing method       - {red(c)}.{yellow(underline(m))}")
+
+                if "!ignore" in m.comments:
+                    continue
 
                 try:
                     md_m = md_c.methods[method_name]
@@ -221,7 +236,6 @@ class Parsnip:
                                       f" - should be {blue(bold(correct_type))}")
                 except KeyError:
                     ...
-
 
 
 def red(s: str): return f"\x1b[;31m{s}\x1b[;39m"

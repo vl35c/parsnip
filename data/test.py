@@ -5,6 +5,7 @@ from typing import Callable
 class Renderer:
     def __init__(self):
         self.held_functions: list[HeldFunction] = []
+        self.missing_prop: str = ''
 
     # add function to list
     def hold(self, func: Callable, z: int, missing_param):

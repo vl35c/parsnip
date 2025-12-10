@@ -77,7 +77,7 @@ parseFunctionCall = FunctionCall <$> (callString <* charP '(' <* notNewLine <* w
 parseProperty :: Parser Python
 parseProperty = do
   name <- stringP "self." *> (codeString) <* ws
-  varType <- (charP ':' *> ws *> (spanP (/='=')) <* ws) <|> pure ""
+  varType <- (charP ':' *> ws *> (spanP (/='=')) <* ws) <|> pure "unset"
   value <- stringP "=" *> ws *> notNewLine <* ws
   Parser $ \input -> Just (input, Property name varType value)
 
