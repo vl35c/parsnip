@@ -76,7 +76,7 @@ class PYMethod:
         # 1:-1 to remove [] and split to get each param
         for param in params[1:-1].split(','):
             _, name, type_ = param.split("<p>")
-            self.params[name] = [type_]
+            self.params[name] = type_
 
 
 class PYProperty:
@@ -195,7 +195,7 @@ class Parsnip:
         for class_name, c in self.py_file.classes.items():
             if class_name not in self.md_file.classes:
                 if not "!ignore" in c.comments:
-                    print(f"[parsnip]: missing class     - {red(underline(c))}")
+                    print(f"[parsnip]: missing class        - {red(underline(c))}")
             try:
                 md_c = self.md_file.classes[class_name]
             except KeyError:
@@ -204,14 +204,21 @@ class Parsnip:
             for method_name, m in c.methods.items():
                 if m.name not in md_c.methods and m.name != "__init__":
                     if not "!ignore" in m.comments:
-                        print(f"[parsnip]: missing method    - {red(c)}.{yellow(underline(m))}")
+                        print(f"[parsnip]: missing method       - {red(c)}.{yellow(underline(m))}")
 
                 try:
                     md_m = md_c.methods[method_name]
                 
                     for param in m.params:
                         if param not in md_m.params:
-                            print(f"[parsnip]: missing parameter - {red(c)}.{yellow(m)}({green(underline(param))})")
+                            print(f"[parsnip]: missing parameter    - {red(c)}.{yellow(m)}({green(underline(param))})")
+                        else:
+                            if m.params[param] != md_m.params[param]:
+                                correct_type = m.params[param]
+                                incorrect_type = md_m.params[param]
+                                print(f"[parsnip]: wrong parameter type - "
+                                      f"{red(c)}.{yellow(m)}({green(param)}: {blue(underline(incorrect_type))})"
+                                      f" - should be {blue(bold(correct_type))}")
                 except KeyError:
                     ...
 
