@@ -14,20 +14,34 @@ import Parser
 data Markdown = Class String String
               | Subclass String String String
               | Subheader String
-              | CodeSnippet String String
+              | CodeSnippet Markdown String
+              | Code String
+              | Function String
               | HorizontalBreak
 
 instance Show Markdown where
   show (Class className description)               = "\"Class<s>" ++ className ++ "<s>"  ++ description ++ "\""
   show (Subclass className superClass description) = "\"Subclass<s>" ++ className ++ "<s>" ++ superClass ++ "<s>" ++ description ++ "\""
   show (Subheader subheader)                       = "\"Subheader<s>" ++ subheader ++ "\""
-  show (CodeSnippet code description)              = "\"CodeSnippet<s>" ++ code ++ "<s>" ++ description ++ "\""
+  show (CodeSnippet code description)              = "\"CodeSnippet<s>" ++ show code ++ "<s>" ++ description ++ "\""
   show HorizontalBreak                             = "\"HB\""
+  show (Code code)                                 = code
+  show (Function code)                             = code
 
 
 -- parses .md code snippets which are between '`' characters
-codeLiteral :: Parser String
-codeLiteral = spanP (/= '`')
+codeLiteral :: Parser Markdown
+codeLiteral = Code <$> ((spanP (/= '`')))
+
+
+codeString :: Parser String
+codeString = spanP isCodeChar
+  where
+    isCodeChar c = if isAlpha c 
+                   then True 
+                   else case c of
+      '_' -> True
+      _   -> False
 
 
 -- parses the # HEADER in a .md file, and then gets the next line as the description
@@ -48,18 +62,25 @@ parseSubClass = do
   Parser $ \input -> Just (input, Subclass className description superClass)
 
 
-
 -- parses out the subheaders - in parsnip these are ### PROPERTIES and ### METHODS
 parseSubheader :: Parser Markdown
 parseSubheader = Subheader <$> (ws *> stringP "### " *> alphanumeric <* notNewLine <* ws)
 
 
+parseFunction :: Parser Markdown
+parseFunction = do
+  name <- codeString <* ws <* charP '('
+  _ <- spanP (/=')') <* charP ')' <* ws
+  returnType <- (stringP "->" *> ws *> spanP (/='`') <* ws) <|> pure ""
+  Parser $ \input -> Just (input, Function name)
+
+
 -- parses code snippets and their descriptions
 parseCodeSnippet :: Parser Markdown
 parseCodeSnippet = do
-  _ <- (ws *> charP '`')
-  code <- codeLiteral
-  _ <- (charP '`' <* ws <* stringP "- ")
+  _ <- (ws <* charP '`')
+  code <- parseFunction <|> codeLiteral
+  _ <- (stringP "` - " <* ws)
   description <- (notNewLine <* ws)
   Parser $ \input -> Just (input, CodeSnippet code $ takeWhile (/='\\') description)
 

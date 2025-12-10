@@ -1,6 +1,6 @@
 # Font
 
-Font overrides pygame's own font class, extending its functionality to be able to render and draw in 1 function call, increasing code neatness.
+Font overrides pygames own font class, extending its functionality to be able to render and draw in 1 function call, increasing code neatness.
 
 ### PROPERTIES:
 `font` - the font face that the class uses\
@@ -206,10 +206,10 @@ TextInput allows the user to input text into a custom interactor
 `text_object` - string to be offset
 
 ---
-`activate(self)` - sets the button's state to active
+`activate(self)` - sets the buttons state to active
 
 ---
-`deactivate(self)` - sets the button's state to inactive and resets some other fields
+`deactivate(self)` - sets the buttons state to inactive and resets some other fields
 
 ---
 `get_buttons(self) -> list[Button]` - returns a list of all of the generated buttons

@@ -1,5 +1,12 @@
 # Revision history for parsnip
 
+## 0.1.0.4 -- 2025-12-10
+
+* Markdown Parser
+  * functions
+
+* warnings for missing code implemented
+
 ## 0.1.0.3 -- 2025-12-06
 
 * Python Parser

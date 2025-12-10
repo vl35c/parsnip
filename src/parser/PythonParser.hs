@@ -24,6 +24,7 @@ instance Show Python where
   show (Comment comment) = "\"Comment<s>" ++ comment ++ "\""
 
 
+-- parses variable names
 codeString :: Parser String
 codeString = spanP isCodeChar
   where
@@ -33,7 +34,7 @@ codeString = spanP isCodeChar
       '_' -> True
       _   -> False
 
-
+-- parses called functions, i.e. variables names joined by .
 callString :: Parser String
 callString = spanP isCallChar
   where
@@ -45,10 +46,12 @@ callString = spanP isCallChar
       _   -> False
 
 
+-- separates by parsing a delimiter and then parsing all elements and constructing a list
 sepBy :: Parser a -> Parser b -> Parser [b]
-sepBy sep element = (:) <$> element <*> many (sep *> element) <|> pure []
+sepBy sep element = (:) <$> element <*> many (sep *> element) <|> pure []  -- if fail, empty list
 
 
+-- parses a function parameter
 parseParam :: Parser Python
 parseParam = do
   name <- codeString <* ws
@@ -56,6 +59,7 @@ parseParam = do
   Parser $ \input -> Just (input, Param name varType)
 
 
+-- parses import x from y
 parseImportFrom :: Parser Python
 parseImportFrom = do
   from <- stringP "from" *> ws *> (spanP isAlpha) <* ws
@@ -63,10 +67,12 @@ parseImportFrom = do
   Parser $ \input -> Just (input, ImportFrom from import')
 
 
+-- parses class ...
 parseClass :: Parser Python
 parseClass = Class <$> (stringP "class" *> ws *> (spanP isAlpha) <* ws <* charP ':' <* ws)
 
 
+-- parses def ...
 parseFunction :: Parser Python
 parseFunction = do
   _ <- stringP "def" <* ws
@@ -76,10 +82,12 @@ parseFunction = do
   Parser $ \input -> Just (input, Function name params)
 
 
+-- parses a function call
 parseFunctionCall :: Parser Python
 parseFunctionCall = FunctionCall <$> (callString <* charP '(' <* notNewLine <* ws)
 
 
+-- parses a property in an object
 parseProperty :: Parser Python
 parseProperty = do
   name <- stringP "self." *> (codeString) <* ws
@@ -88,6 +96,7 @@ parseProperty = do
   Parser $ \input -> Just (input, Property name varType value)
 
 
+-- parses a for loop - probably not solid code
 parseFor :: Parser Python
 parseFor = do
   item <- stringP "for" *> ws *> (spanP isAlpha) <* ws
@@ -95,10 +104,16 @@ parseFor = do
   Parser $ \input -> Just (input, For item iterator)
 
 
+-- parses comment 
 parseComment :: Parser Python
 parseComment = Comment <$> (charP '#' *> ws *> notNewLine <* ws)
 
 
+parsePlaceholder :: Parser Python
+parsePlaceholder =  (\_ -> Comment "...") <$> (ws *> stringP "..." <* ws)
+
+
+-- complete parser
 parsePython :: Parser Python
 parsePython = parseClass <|>
               parseFunction <|>
@@ -106,9 +121,11 @@ parsePython = parseClass <|>
               parseFor <|>
               parseImportFrom <|>
               parseComment <|>
-              parseFunctionCall
+              parseFunctionCall <|>
+              parsePlaceholder
 
 
+-- io calls this
 parse_py :: String -> [Python]
 parse_py input = case output of
   Just (rest, token) -> token : (parse_py rest)

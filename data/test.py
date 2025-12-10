@@ -20,6 +20,9 @@ class Renderer:
     def flush(self):
         self.held_functions = []
 
+    def missing_func():
+        ...
+
 
 class HeldFunction:
     # !ignore
