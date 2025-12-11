@@ -1,5 +1,6 @@
 import subprocess
 import json
+import os
 
 from enum import Enum
 
@@ -41,6 +42,7 @@ class MDMethod:
 class MDProperty:
     def __init__(self, name: str, description: str):
         self.name: str = name
+        self.type_: str = ""
         self.description: str = description
 
     def __str__(self):
@@ -96,19 +98,49 @@ class AttrType(Enum):
 
 class Parsnip:
     def __init__(self):
+        self.md_file = None
+        self.py_file = None
+        self.attr_store_type = AttrType.properties
+        self.current_class = None
+        self.current_scope = None
+
+
+        f = {}
+        for (dirpath, dirnames, filenames) in os.walk("./"):
+            files = [f for f in filenames if f.endswith(".py") or f.endswith(".md")]
+            if len(files) > 0:
+                f[dirpath] = files
+
+        for path, files in f.items():
+            py_files = [f for f in files if f.endswith(".py")]
+
+            try:
+                doc_file = [f for f in files if f == "docs.md"][0]
+            except IndexError:
+                continue
+            
+            if len(py_files) == 0 or (len(py_files) == 1 and py_files[0] == "main.py"):
+                continue
+
+            for py_file in py_files:
+                self.check_files(f"{path}/{doc_file}", f"{path}/{py_file}")
+
+    def check_files(self, md_path: str, py_path: str) -> None:
         self.md_file = MDFile()
         self.py_file = PYFile()
 
-        self.attr_store_type = AttrType.properties;
+        self.attr_store_type = AttrType.properties
 
         self.current_class = None
         self.current_scope = None
 
-        md_data = self.parse_md_file("data/test.md")
+        md_data = self.parse_md_file(md_path)
         self.store_md_data(md_data)
         
-        py_data = self.parse_py_file("data/test.py")
+        py_data = self.parse_py_file(py_path)
         self.store_py_data(py_data)
+
+        self.match_files()
 
     def parse_md_file(self, filepath: str) -> list[str]:
         with open(filepath, "rb") as md:
@@ -213,10 +245,13 @@ class Parsnip:
                 if p.name not in md_c.properties:
                     print(f"[parsnip]: missing property     - {red(c)}.{yellow(underline(p))}")
 
+                else:
+                    print(md_c.properties[p.name].type_)
+
             for method_name, m in c.methods.items():
                 if m.name not in md_c.methods and m.name != "__init__":
                     if not "!ignore" in m.comments:
-                        print(f"[parsnip]: missing method       - {red(c)}.{yellow(underline(m))}")
+                        print(f"[parsnip]: missing method       - {red(c)}.{yellow(underline(m))}()")
 
                 if "!ignore" in m.comments:
                     continue
@@ -259,5 +294,4 @@ def underline(s: str): return f"\x1b[4;29m{s}\x1b[0;39m"
 
 
 if __name__ == "__main__":
-    Parsnip().match_files()
-
+    Parsnip()
